@@ -30,6 +30,9 @@ function createApp({ rateLimitMax = 100 } = {}) {
   app.use('/api/v1/auth', require('./routes/auth'));
   app.use('/api/v1/restaurants', require('./routes/restaurants'));
   app.use('/api/v1/reservations', require('./routes/reservations'));
+  app.use('/api/v1/menu-items', require('./routes/menuItems'));
+  app.use('/api/v1/preorders', require('./routes/preorders'));
+  app.use('/api/v1/reviews', require('./routes/reviews'));
   app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
   app.use(errorHandler);
   return app;

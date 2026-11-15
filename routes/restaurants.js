@@ -1,8 +1,12 @@
 const router = require('express').Router();
 const { getRestaurants, getRestaurant } = require('../controllers/restaurants');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const { addReservation } = require('../controllers/reservations');
+const { getMenu, createMenuItem } = require('../controllers/menu');
+const { getRestaurantReviews } = require('../controllers/reviews');
 router.post('/:restaurantId/reservations', protect, addReservation);
+router.route('/:restaurantId/menu').get(protect, getMenu).post(protect, authorize('admin'), createMenuItem);
+router.get('/:restaurantId/reviews', protect, getRestaurantReviews);
 router.get('/', getRestaurants);
 router.get('/:id', getRestaurant);
 module.exports = router;

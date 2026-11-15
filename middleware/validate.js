@@ -28,4 +28,40 @@ function reservationDate(value) {
   }
   return date;
 }
-module.exports = { fields, objectId, reservationDate };
+// Typed body validation for the additional features (menu, pre-order, review),
+// which accept numbers and booleans as well as strings.
+function shape(body, allowed, required = []) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ApiError(400, 'A JSON object is required');
+  if (Object.keys(body).some(key => !allowed.includes(key))) throw new ApiError(400, 'Unexpected field in request');
+  for (const key of required) if (body[key] === undefined) throw new ApiError(400, `${key} is required`);
+}
+function text(value, key, { max, optional = false }) {
+  if (typeof value !== 'string') throw new ApiError(400, `${key} must be a string`);
+  const trimmed = value.trim();
+  if (!trimmed && !optional) throw new ApiError(400, `${key} must be a nonempty string`);
+  if (trimmed.length > max) throw new ApiError(400, `${key} must be at most ${max} characters`);
+  if (/[<>]/.test(trimmed)) throw new ApiError(400, `${key} must not contain HTML`);
+  return trimmed;
+}
+function price(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1000000) {
+    throw new ApiError(400, 'price must be a number from 0 to 1,000,000');
+  }
+  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) throw new ApiError(400, 'price may have at most 2 decimal places');
+  return Math.round(value * 100) / 100;
+}
+function integer(value, key, min, max) {
+  if (!Number.isInteger(value) || value < min || value > max) throw new ApiError(400, `${key} must be an integer from ${min} to ${max}`);
+  return value;
+}
+function boolean(value, key) {
+  if (typeof value !== 'boolean') throw new ApiError(400, `${key} must be true or false`);
+  return value;
+}
+function calendarDay(value, key = 'date') {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new ApiError(400, `${key} must use the format YYYY-MM-DD`);
+  const day = new Date(`${value}T00:00:00Z`);
+  if (!Number.isFinite(day.getTime()) || day.toISOString().slice(0, 10) !== value) throw new ApiError(400, `Invalid ${key}`);
+  return value;
+}
+module.exports = { fields, objectId, reservationDate, shape, text, price, integer, boolean, calendarDay };

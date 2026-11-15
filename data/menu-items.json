@@ -1,0 +1,9 @@
+[
+  { "_id": "710000000000000000000001", "restaurant": "700000000000000000000001", "name": "Green Curry (Demo)", "description": "Chicken green curry with jasmine rice", "price": 180, "availableForPreorder": true },
+  { "_id": "710000000000000000000002", "restaurant": "700000000000000000000001", "name": "Pad Thai (Demo)", "description": "Stir-fried rice noodles with shrimp", "price": 150, "availableForPreorder": true },
+  { "_id": "710000000000000000000003", "restaurant": "700000000000000000000001", "name": "Thai Iced Tea (Demo)", "description": "", "price": 60, "availableForPreorder": true },
+  { "_id": "710000000000000000000004", "restaurant": "700000000000000000000002", "name": "Grilled River Prawns (Demo)", "description": "Market price may vary", "price": 450, "availableForPreorder": false },
+  { "_id": "710000000000000000000005", "restaurant": "700000000000000000000002", "name": "Tom Yum Goong (Demo)", "description": "Spicy and sour prawn soup", "price": 220, "availableForPreorder": true },
+  { "_id": "710000000000000000000006", "restaurant": "700000000000000000000003", "name": "Boat Noodles (Demo)", "description": "Late-night favourite", "price": 80, "availableForPreorder": true },
+  { "_id": "710000000000000000000007", "restaurant": "700000000000000000000003", "name": "Mango Sticky Rice (Demo)", "description": "", "price": 120, "availableForPreorder": true }
+]

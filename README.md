@@ -87,6 +87,37 @@ PUT รับเฉพาะ `reservationDate` และ/หรือ `restauran
 - สมัครสมาชิกได้เฉพาะ role `user` ส่วน admin สร้างผ่าน script
 - Logout ล้าง cookie แต่ Bearer token ที่คัดลอกไว้ยังใช้ได้จนหมดอายุ
 
+## Additional Requirements (Group: Hungry)
+
+| Method | Path | ใครใช้ได้ | การใช้งาน |
+| --- | --- | --- | --- |
+| GET | `/restaurants/:restaurantId/menu` | สมาชิก | เมนูที่เปิดใช้งาน (admin เห็นที่ปิดแล้วด้วย) |
+| POST | `/restaurants/:restaurantId/menu` | admin | สร้างเมนู `name`, `description`, `price`, `availableForPreorder` |
+| GET | `/menu-items/:id` | สมาชิก | รายละเอียดเมนู |
+| PUT | `/menu-items/:id` | admin | แก้เมนู |
+| PATCH | `/menu-items/:id/deactivate` | admin | ปิดเมนู (ไม่ลบจริง ข้อมูลใน pre-order เดิมยังอยู่) |
+| GET | `/reservations/:id/preorder` | เจ้าของ / admin | ดู pre-order ของการจอง |
+| POST | `/reservations/:id/preorder/items` | เจ้าของ | เพิ่มเมนู `{ menuItem, quantity }` ถ้ามีอยู่แล้วจะบวกจำนวนเพิ่ม |
+| PUT | `/reservations/:id/preorder/items/:menuItemId` | เจ้าของ | ตั้งจำนวนใหม่ `{ quantity }` |
+| DELETE | `/reservations/:id/preorder/items/:menuItemId` | เจ้าของ | ลบเมนูออกจาก pre-order |
+| GET | `/preorders?date=YYYY-MM-DD` | admin | ดู pre-order ตามวันที่จอง (เวลาไทย) |
+| POST | `/reservations/check-in` | admin | ตรวจรหัส `{ code }` ในวันที่จอง: reserved → checked-in |
+| PATCH | `/reservations/:id/complete` | admin | ทานเสร็จ: checked-in → completed |
+| POST | `/reservations/:id/review` | เจ้าของ | รีวิว `{ rating: 1-5, comment? }` เฉพาะการจองที่ completed |
+| GET | `/restaurants/:restaurantId/reviews` | สมาชิก | รีวิวทั้งหมดพร้อม `averageRating` |
+| GET / PUT / DELETE | `/reviews/:id` | สมาชิก / ผู้เขียนเท่านั้น | ดู แก้ ลบรีวิว |
+
+1. **Menu items** – admin สร้าง แก้ และปิดเมนูได้ สมาชิกเห็นเฉพาะเมนูที่เปิดอยู่ การปิดเมนูไม่ลบข้อมูล pre-order เดิมจึงยังเห็นชื่อและราคาเดิม
+2. **Pre-order** – เจ้าของการจองเพิ่ม แก้ ลบเมนูได้ก่อน check-in เท่านั้น จำนวนต้องเป็นจำนวนเต็ม 1–100 เมนูต้องเปิดอยู่ เปิดให้ pre-order และเป็นของร้านเดียวกับการจอง ระบบคำนวณ `totalPrice` และเก็บ `unitPrice` ตอนเพิ่มครั้งแรกไว้ (admin เปลี่ยนราคาทีหลังไม่กระทบ) ถ้าลบการจอง pre-order จะเปลี่ยนเป็น `cancelled` ถ้ามีเมนูใน pre-order อยู่จะเปลี่ยนร้านของการจองไม่ได้
+3. **Review** – รีวิวได้เฉพาะการจองของตัวเองที่ `completed` แล้ว 1 การจองต่อ 1 รีวิว แก้หรือลบได้เฉพาะผู้เขียน (admin ก็แก้ไม่ได้)
+4. **Check-in code** – ทุกการจองได้รหัส 10 ตัว (เช่น `3F9A0C12BE`) ใน response ตอนจองและตอนเจ้าของดูการจอง admin มองไม่เห็นรหัส admin ตรวจรหัสได้เฉพาะวันที่จอง (เวลาไทย) รหัสใช้ได้ครั้งเดียว รหัสของการจองที่ถูกลบจะใช้ไม่ได้ และเปลี่ยนสถานะได้แค่ reserved → checked-in → completed
+
+สิ่งที่เปลี่ยนจากส่วน basic:
+- การจองที่ `completed` แล้วไม่นับในเพดาน 3 รายการ (ไม่ต้องลบการจองเก่าเพื่อจองใหม่ และรีวิวยังอยู่)
+- หลัง check-in สมาชิกแก้หรือลบการจองไม่ได้ (admin ยังลบได้)
+- ตอน start server ระบบจะ sync index ใหม่ และเติม `status` กับ `checkInCode` ให้การจองเก่าที่ยังไม่มีให้อัตโนมัติ
+- `npm run seed` เพิ่มเมนูตัวอย่างของร้านตัวอย่างด้วย
+
 ## ทดสอบ
 
 ```bash
