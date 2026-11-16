@@ -96,7 +96,21 @@ npm run test:postman
 
 สองคำสั่งนี้ใช้ MongoDB ชั่วคราวในเครื่อง ครั้งแรกอาจดาวน์โหลด MongoDB binary ไม่ใช้ฐาน Atlas ที่ตั้งค่าไว้ในโปรเจกต์
 
-ถ้าทดสอบผ่าน Postman ให้ import ทั้ง collection และ environment ใน `postman/` แล้วตั้ง `baseUrl`, `adminEmail`, `adminPassword` เป็นค่าในเครื่อง รันทั้ง collection ตามลำดับหลัง seed ร้านและสร้าง admin แล้ว ชุดทดสอบจะสร้างบัญชีทดสอบใหม่และลบรายการจองของรอบนั้นเมื่อรันจบ
+สำหรับนำเสนอตามลำดับอาจารย์ ให้ import `postman/Presentation.postman_collection.json` และ `postman/Presentation.postman_environment.json` แล้วเลือก environment `Restaurant Final - Presentation Local`
+
+ตั้ง `baseUrl`, `adminEmail`, `adminPassword` ใน Current value ของเครื่อง โดยใช้ Admin ของแอป ไม่ใช่ Database User ของ Atlas และคง Initial value ของรหัสผ่านให้ว่าง เลือก Run ทั้ง collection ตามลำดับ 1 iteration, delay 500 ms และเปิด Persist responses for a session เพื่อดู JSON ย้อนหลัง
+
+ชุดนำเสนอมี 42 requests / 148 assertions ครอบคลุมขั้น 1–12 สมัครสมาชิก ตรวจข้อมูล Login ดูร้าน CRUD การจอง ตรวจสิทธิ์สมาชิก และ Admin ชุดทดสอบสมัครบัญชีใหม่ทุกครั้งเพื่อไม่ให้ email ซ้ำ แล้วลบเฉพาะการจองของรอบนั้นเมื่อรันครบจนจบ บัญชีทดสอบยังคงอยู่ หากหยุดกลางทางอาจมีการจองทดสอบค้าง ห้ามล้างฐานข้อมูลทั้งหมด
+
+ใช้ Newman แทน GUI ได้ขณะ backend ทำงานอยู่ โดยอ่าน credential จากไฟล์ config ที่ไม่ถูก commit:
+
+```bash
+npm run demo:presentation
+```
+
+ระบบจำกัด 100 API requests ต่อ IP ใน 10 นาที จึงไม่ควรซ้อมชุด 42 requests สามรอบติดกัน หากได้ 429 ให้รอจนหน้าต่างเวลาหมดแล้วเริ่มรอบใหม่ โดยไม่ต้องปิด rate limiter
+
+`RestaurantReservation.postman_collection.json` เป็นชุดตรวจ API เดิม 34 requests / 109 assertions ส่วนการนำเสนอให้ใช้ชุด Presentation ด้านบน
 
 ## โครงสร้าง
 

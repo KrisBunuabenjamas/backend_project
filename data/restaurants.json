@@ -1,5 +1,5 @@
 [
-  { "_id": "700000000000000000000001", "name": "Siam Garden (Demo)", "address": "100 Demo Road, Pathum Wan, Bangkok", "tel": "020000001", "openTime": "10:00", "closeTime": "22:00" },
-  { "_id": "700000000000000000000002", "name": "River Table (Demo)", "address": "200 Demo Road, Khlong San, Bangkok", "tel": "020000002", "openTime": "11:00", "closeTime": "23:00" },
-  { "_id": "700000000000000000000003", "name": "Night Kitchen (Demo)", "address": "300 Demo Road, Watthana, Bangkok", "tel": "020000003", "openTime": "18:00", "closeTime": "02:00" }
+  { "_id": "700000000000000000000001", "name": "ร้านอาหาร A", "address": "100 ถนนตัวอย่าง กรุงเทพฯ", "tel": "020000001", "openTime": "10:00", "closeTime": "22:00" },
+  { "_id": "700000000000000000000002", "name": "ร้านอาหาร B", "address": "200 ถนนตัวอย่าง กรุงเทพฯ", "tel": "020000002", "openTime": "11:00", "closeTime": "23:00" },
+  { "_id": "700000000000000000000003", "name": "ร้านอาหาร C", "address": "300 ถนนตัวอย่าง กรุงเทพฯ", "tel": "020000003", "openTime": "18:00", "closeTime": "02:00" }
 ]

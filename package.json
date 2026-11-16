@@ -15,7 +15,8 @@
     "seed": "node scripts/seed-restaurants.js",
     "create-admin": "node scripts/create-admin.js",
     "postman:generate": "node scripts/generate-postman.js",
-    "test:postman": "node scripts/verify-postman.js"
+    "test:postman": "node scripts/verify-postman.js",
+    "demo:presentation": "node scripts/run-presentation.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
