@@ -64,9 +64,80 @@ add('30 No cookie after logout is unauthorized', 'GET', '/auth/me', 401);
 add('31 Invalid calendar date rejected', 'POST', '/restaurants/{{restaurantId}}/reservations', 400, { ...owner, body: { reservationDate: '2026-02-30' } });
 add('32 Cannot register as admin', 'POST', '/auth/register', 400, { body: { ...registration('blocked-{{runId}}@example.com'), role: 'admin' } });
 
+// ---------- Additional requirements: menu, pre-orders, check-in codes, reviews ----------
+const saveField = (name, field) => `if (pm.response.code < 300) pm.variables.set('${name}', pm.response.json().data.${field});`;
+const expect = (label, expr) => `pm.test('${label}', () => pm.expect(${expr}).to.eql(true));`;
+const json = 'pm.response.json()';
+// Requirement 1: menu items
+add('A01 Admin creates menu item', 'POST', '/restaurants/{{restaurantId}}/menu', 201, { ...admin,
+  body: { name: 'Postman Pad Thai {{runId}}', description: 'Rice noodles', price: 120 }, tests: [saveId('menuItem1')] });
+add('A02 Admin creates second menu item', 'POST', '/restaurants/{{restaurantId}}/menu', 201, { ...admin,
+  body: { name: 'Postman Iced Tea {{runId}}', price: 45.5 }, tests: [saveId('menuItem2')] });
+add('A03 Member cannot create menu item', 'POST', '/restaurants/{{restaurantId}}/menu', 403, { ...owner, body: { name: 'Blocked', price: 1 } });
+add('A04 Invalid price rejected', 'POST', '/restaurants/{{restaurantId}}/menu', 400, { ...admin, body: { name: 'Bad price', price: -5 } });
+add('A05 Member views active menu', 'GET', '/restaurants/{{restaurantId}}/menu', 200, { ...owner, tests: [
+  expect('Contains new item', `${json}.data.some(i => i._id === pm.variables.get('menuItem1'))`)] });
+add('A06 Menu requires login', 'GET', '/restaurants/{{restaurantId}}/menu', 401);
+// Requirement 4 + 2: reservation for today with a check-in code, then a pre-order
+add('A07 Owner reserves today', 'POST', '/restaurants/{{restaurantId}}/reservations', 201, { ...owner, body: { reservationDate: '{{today}}' }, tests: [
+  saveId('todayReservation'), saveField('checkInCode', 'checkInCode'),
+  expect('Status reserved', `${json}.data.status === 'reserved'`), expect('Has check-in code', `/^[A-F0-9]{10}$/.test(${json}.data.checkInCode)`)] });
+add('A08 Admin cannot see check-in code', 'GET', '/reservations/{{todayReservation}}', 200, { ...admin, tests: [
+  expect('Code hidden', `${json}.data.checkInCode === undefined`)] });
+add('A09 Owner pre-orders 2 x item 1', 'POST', '/reservations/{{todayReservation}}/preorder/items', 201, { ...owner,
+  body: { menuItem: '{{menuItem1}}', quantity: 2 }, tests: [expect('Total 240', `${json}.data.totalPrice === 240`)] });
+add('A10 Admin raises item 1 price', 'PUT', '/menu-items/{{menuItem1}}', 200, { ...admin, body: { price: 150 } });
+add('A11 Adding again keeps first unit price', 'POST', '/reservations/{{todayReservation}}/preorder/items', 201, { ...owner,
+  body: { menuItem: '{{menuItem1}}', quantity: 1 }, tests: [expect('Unit price 120, quantity 3', `${json}.data.items[0].unitPrice === 120 && ${json}.data.items[0].quantity === 3`)] });
+add('A12 Owner pre-orders 2 x item 2', 'POST', '/reservations/{{todayReservation}}/preorder/items', 201, { ...owner,
+  body: { menuItem: '{{menuItem2}}', quantity: 2 }, tests: [expect('Total 451', `${json}.data.totalPrice === 451`)] });
+add('A13 Zero quantity rejected', 'POST', '/reservations/{{todayReservation}}/preorder/items', 400, { ...owner, body: { menuItem: '{{menuItem1}}', quantity: 0 } });
+add('A14 Other member cannot pre-order', 'POST', '/reservations/{{todayReservation}}/preorder/items', 403, { ...other, body: { menuItem: '{{menuItem1}}', quantity: 1 } });
+add('A15 Owner sets item 1 quantity to 1', 'PUT', '/reservations/{{todayReservation}}/preorder/items/{{menuItem1}}', 200, { ...owner,
+  body: { quantity: 1 }, tests: [expect('Total 211', `${json}.data.totalPrice === 211`)] });
+add('A16 Admin deactivates item 2', 'PATCH', '/menu-items/{{menuItem2}}/deactivate', 200, { ...admin, tests: [expect('Inactive', `${json}.data.isActive === false`)] });
+add('A17 Deactivated item cannot be added', 'POST', '/reservations/{{todayReservation}}/preorder/items', 400, { ...owner, body: { menuItem: '{{menuItem2}}', quantity: 1 } });
+add('A18 Pre-order keeps deactivated item details', 'GET', '/reservations/{{todayReservation}}/preorder', 200, { ...owner, tests: [
+  expect('Item 2 still listed', `${json}.data.items.some(i => i.menuItem === pm.variables.get('menuItem2') && i.unitPrice === 45.5)`)] });
+add('A19 Owner removes item 2', 'DELETE', '/reservations/{{todayReservation}}/preorder/items/{{menuItem2}}', 200, { ...owner, tests: [
+  expect('Total 120', `${json}.data.totalPrice === 120`)] });
+add('A20 Admin views pre-orders by date', 'GET', '/preorders?date={{today}}', 200, { ...admin, tests: [
+  expect('Contains reservation', `${json}.data.some(p => p.reservation._id === pm.variables.get('todayReservation'))`)] });
+add('A21 Member cannot view pre-orders by date', 'GET', '/preorders?date={{today}}', 403, owner);
+// Requirement 4: check-in flow
+add('A22 Review before completion rejected', 'POST', '/reservations/{{todayReservation}}/review', 409, { ...owner, body: { rating: 5 } });
+add('A23 Member cannot check in', 'POST', '/reservations/check-in', 403, { ...owner, body: { code: '{{checkInCode}}' } });
+add('A24 Admin checks in with code', 'POST', '/reservations/check-in', 200, { ...admin, body: { code: '{{checkInCode}}' }, tests: [
+  expect('Checked in', `${json}.data.status === 'checked-in'`)] });
+add('A25 Reused code rejected', 'POST', '/reservations/check-in', 409, { ...admin, body: { code: '{{checkInCode}}' } });
+add('A26 Pre-order locked after check-in', 'PUT', '/reservations/{{todayReservation}}/preorder/items/{{menuItem1}}', 409, { ...owner, body: { quantity: 2 } });
+add('A27 Reservation locked after check-in', 'PUT', '/reservations/{{todayReservation}}', 409, { ...owner, body: { reservationDate: '{{today}}' } });
+add('A28 Admin completes reservation', 'PATCH', '/reservations/{{todayReservation}}/complete', 200, { ...admin, tests: [
+  expect('Completed', `${json}.data.status === 'completed'`)] });
+add('A29 Completing twice rejected', 'PATCH', '/reservations/{{todayReservation}}/complete', 409, admin);
+// Requirement 3: reviews
+add('A30 Owner reviews completed reservation', 'POST', '/reservations/{{todayReservation}}/review', 201, { ...owner,
+  body: { rating: 5, comment: 'Great food' }, tests: [saveId('reviewId')] });
+add('A31 Second review rejected', 'POST', '/reservations/{{todayReservation}}/review', 409, { ...owner, body: { rating: 4 } });
+add('A32 Invalid rating rejected', 'PUT', '/reviews/{{reviewId}}', 400, { ...owner, body: { rating: 6 } });
+add('A33 Other member cannot edit review', 'PUT', '/reviews/{{reviewId}}', 403, { ...other, body: { rating: 1 } });
+add('A34 Admin cannot delete review', 'DELETE', '/reviews/{{reviewId}}', 403, admin);
+add('A35 Author edits review', 'PUT', '/reviews/{{reviewId}}', 200, { ...owner, body: { rating: 4 }, tests: [expect('Rating 4', `${json}.data.rating === 4`)] });
+add('A36 Members see reviews and average', 'GET', '/restaurants/{{restaurantId}}/reviews', 200, { ...other, tests: [
+  expect('Has average', `typeof ${json}.averageRating === 'number' && ${json}.data.some(r => r._id === pm.variables.get('reviewId'))`)] });
+add('A37 Author deletes review', 'DELETE', '/reviews/{{reviewId}}', 200, owner);
+// Requirement 4: deleted reservation's code is rejected; deleting cancels the pre-order
+add('A38 Owner reserves again', 'POST', '/restaurants/{{restaurantId}}/reservations', 201, { ...owner, body: { reservationDate: '{{today}}' }, tests: [
+  saveId('deletedReservation'), saveField('deletedCode', 'checkInCode')] });
+add('A39 Owner deletes that reservation', 'DELETE', '/reservations/{{deletedReservation}}', 200, owner);
+add('A40 Deleted reservation code rejected', 'POST', '/reservations/check-in', 404, { ...admin, body: { code: '{{deletedCode}}' } });
+// Cleanup
+add('A41 Cleanup completed reservation (admin)', 'DELETE', '/reservations/{{todayReservation}}', 200, admin);
+add('A42 Cleanup deactivate menu item 1', 'PATCH', '/menu-items/{{menuItem1}}/deactivate', 200, admin);
+
 const collection = {
   info: { name: 'Restaurant Reservation - Final Project', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
-    description: 'Run the entire collection in order against a NEW final-project database after npm run seed and npm run create-admin. Set baseUrl/adminEmail/adminPassword locally. Creates two uniquely named test accounts per run; cleans their reservations. Does not delete accounts. Cookies disabled except explicitly supplied test headers. Each request asserts response time <3000ms. Tokens use run-local variables and are not exported.' },
+    description: 'Run the entire collection in order against a NEW final-project database after npm run seed and npm run create-admin. Set baseUrl/adminEmail/adminPassword locally. Creates two uniquely named test accounts per run; cleans their reservations and reviews. Does not delete accounts; test menu items are deactivated (not deleted). About 80 requests: the API allows 100 per 10 minutes, so wait before re-running. Cookies disabled except explicitly supplied test headers. Each request asserts response time <3000ms. Tokens use run-local variables and are not exported.' },
   event: [
     { listen: 'prerequest', script: { type: 'text/javascript', exec: [
       "if (!pm.variables.get('runId')) {",
@@ -75,6 +146,8 @@ const collection = {
       "  pm.variables.set('ownerEmail', 'owner-' + runId + '@example.com');",
       "  pm.variables.set('otherEmail', 'other-' + runId + '@example.com');",
       "  if (!pm.variables.get('testPassword')) pm.variables.set('testPassword', pm.variables.replaceIn('{{$guid}}') + '-Test123!');",
+      "  // Today's date in Bangkok time, used for check-in (allowed only on the reservation date).",
+      "  pm.variables.set('today', new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10));",
       "}"
     ] } },
     { listen: 'test', script: { type: 'text/javascript', exec: ["pm.test('Response under 3 seconds', () => pm.expect(pm.response.responseTime).to.be.below(3000));"] } }

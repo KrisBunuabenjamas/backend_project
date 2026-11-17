@@ -11,6 +11,7 @@ function errorHandler(err, req, res, next) {
   if (err.code === 11000) { status = 400; message = 'A record with these unique details already exists'; }
   if (err.name === 'ValidationError') { status = 400; message = 'Invalid or missing field values'; }
   if (err.name === 'CastError') { status = 400; message = 'Invalid resource ID or field value'; }
+  if (err.name === 'VersionError') { status = 409; message = 'The record was changed by another request; please retry'; }
   if (err.type === 'entity.parse.failed') { status = 400; message = 'Invalid JSON body'; }
   if (err.type === 'entity.too.large') { status = 413; message = 'Request body too large'; }
   res.status(status).json({ success: false, message });

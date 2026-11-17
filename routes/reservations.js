@@ -1,7 +1,15 @@
 const router = require('express').Router();
-const { protect } = require('../middleware/auth');
-const { getReservations, getReservation, updateReservation, deleteReservation } = require('../controllers/reservations');
+const { protect, authorize } = require('../middleware/auth');
+const { getReservations, getReservation, updateReservation, deleteReservation, checkIn, completeReservation } = require('../controllers/reservations');
+const { getPreOrder, addItem, updateItem, removeItem } = require('../controllers/preorders');
+const { createReview } = require('../controllers/reviews');
 router.use(protect);
 router.get('/', getReservations);
+router.post('/check-in', authorize('admin'), checkIn);
+router.patch('/:id/complete', authorize('admin'), completeReservation);
+router.get('/:id/preorder', getPreOrder);
+router.post('/:id/preorder/items', addItem);
+router.route('/:id/preorder/items/:menuItemId').put(updateItem).delete(removeItem);
+router.post('/:id/review', createReview);
 router.route('/:id').get(getReservation).put(updateReservation).delete(deleteReservation);
 module.exports = router;
